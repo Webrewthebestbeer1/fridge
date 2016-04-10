@@ -33,39 +33,41 @@ def valid_sensor_range(value):
 
 print("Desired temperature:", DESIRED_TEMP, "\n")
 
-while True:
-    sensor_top_value = sensor_top.get_temperature()
-    sensor_bottom_value = sensor_bottom.get_temperature()
-    sensor_beer_value = sensor_beer.get_temperature()
-    if valid_sensor_range(sensor_top_value) and valid_sensor_range(sensor_bottom_value) and valid_sensor_range(sensor_beer_value):
-        sensor_readings.append(sensor_top_value)
-        sensor_readings.append(sensor_bottom_value)
-        sensor_readings.append(sensor_beer_value)
-        timestep += READING_TICK
-    average_temp = sum(sensor_readings) / len(sensor_readings)
-    logger.info("Top sensor temperature: " + str(sensor_top_value))
-    print("Top sensor temperature:", sensor_top_value)
-    logger.info("Bottom sensor temperature: " + str(sensor_bottom_value))
-    print("Bottom sensor temperature:", sensor_bottom_value)
-    logger.info("Beer sensor temperature: " + str(sensor_beer_value))
-    print("Beer sensor temperature:", sensor_beer_value)
-    logger.info("Average temperature: " + str(average_temp))
-    print("Average temperature:", average_temp)
+try:
+    while True:
+        sensor_top_value = sensor_top.get_temperature()
+        sensor_bottom_value = sensor_bottom.get_temperature()
+        sensor_beer_value = sensor_beer.get_temperature()
+        if valid_sensor_range(sensor_top_value) and valid_sensor_range(sensor_bottom_value) and valid_sensor_range(sensor_beer_value):
+            sensor_readings.append(sensor_top_value)
+            sensor_readings.append(sensor_bottom_value)
+            sensor_readings.append(sensor_beer_value)
+            timestep += READING_TICK
+        average_temp = sum(sensor_readings) / len(sensor_readings)
+        logger.info("Top sensor temperature: " + str(sensor_top_value))
+        print("Top sensor temperature:", sensor_top_value)
+        logger.info("Bottom sensor temperature: " + str(sensor_bottom_value))
+        print("Bottom sensor temperature:", sensor_bottom_value)
+        logger.info("Beer sensor temperature: " + str(sensor_beer_value))
+        print("Beer sensor temperature:", sensor_beer_value)
+        logger.info("Average temperature: " + str(average_temp))
+        print("Average temperature:", average_temp)
+    
+        if timestep == 60:
+            timestep = 0
+            if average_temp > DESIRED_TEMP + DELTA_OVERSHOOT_TEMP:
+                if not GPIO.input(SSR_PIN):
+                    logger.info("Turning on compressor")
+                    print("Turning on compressor")
+                    GPIO.output(SSR_PIN, True)
+            if average_temp <= DESIRED_TEMP:
+                if GPIO.input(SSR_PIN):
+                    GPIO.output(SSR_PIN, False)
+                    logger.info("Turning off compressor")
+                    print("Turning off compressor")
+        print("Timestep:", timestep, "of", 60)
+        print("\n")
+        sleep(READING_TICK)
 
-    if timestep == 60:
-        timestep = 0
-        if average_temp > DESIRED_TEMP + DELTA_OVERSHOOT_TEMP:
-            if not GPIO.input(SSR_PIN):
-                logger.info("Turning on compressor")
-                print("Turning on compressor")
-                GPIO.output(SSR_PIN, True)
-        if average_temp <= DESIRED_TEMP:
-            if GPIO.input(SSR_PIN):
-                GPIO.output(SSR_PIN, False)
-                logger.info("Turning off compressor")
-                print("Turning off compressor")
-    print("Timestep:", timestep, "of", 60)
-    print("\n")
-    sleep(READING_TICK)
-
-GPIO.cleanup()
+except:
+    GPIO.cleanup()
