@@ -25,6 +25,14 @@ Append
 
     wireless-power off
 
+## Setup database
+
+To create the sqlite database, open the python3 shell and execute
+
+    from app import db
+    db.create_all()
+    exit()
+
 ## Performance
 
 ### Compressor switching
