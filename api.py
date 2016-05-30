@@ -1,4 +1,5 @@
 from flask_restful import Resource, Api, reqparse
+from flask import jsonify
 import json
 
 from agent import Agent
@@ -19,8 +20,7 @@ class GetSensorReadings(Resource):
                 readings = Reading.query.all()
             else:
                 readings = Reading.query.order_by(Reading.date.desc()).limit(limit).all()
-            if not readings: return {'readings': {}}
-            return {'readings': json.dumps(readings, cls=FridgeEncoder)}
+            return jsonify([reading.serialize() for reading in readings])
         except Exception as e:
             return {'error': str(e)}
 

@@ -8,6 +8,13 @@ app = Flask(__name__)
 app.config.from_object('config')
 db = SQLAlchemy(app)
 
+@app.after_request
+def after_request(response):
+  response.headers.add('Access-Control-Allow-Origin', '*')
+  response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+  response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+  return response
+
 class Reading(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, default=datetime.datetime.now)
@@ -15,7 +22,7 @@ class Reading(db.Model):
     compressor_state = db.Column(db.Boolean)
     sensors = db.relationship('Sensor')
 
-    def get_dict(self):
+    def serialize(self):
         return {
             'date': self.date.isoformat(),
             'target_temp': self.target_temp,
