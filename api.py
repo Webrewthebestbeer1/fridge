@@ -7,7 +7,9 @@ from app import app, db, Reading, Sensor, FridgeEncoder
 
 api = Api(app)
 parser = reqparse.RequestParser()
-agent = Agent(2)
+latest_reading = Reading.query.order_by(Reading.date.desc()).first()
+if not latest_reading: agent = Agent(19)
+else: agent = Agent(latest_reading.target_temp)
 
 class GetSensorReadings(Resource):
     def get(self):
@@ -17,9 +19,9 @@ class GetSensorReadings(Resource):
             args = parser.parse_args()
             limit = args['limit']
             if not limit:
-                readings = Reading.query.all()
-            else:
-                readings = Reading.query.order_by(Reading.date.desc()).limit(limit).all()
+                limit=50
+            readings = Reading.query.order_by(Reading.date.desc()).limit(limit).all()
+            readings.reverse()
             return jsonify([reading.serialize() for reading in readings])
         except Exception as e:
             return {'error': str(e)}

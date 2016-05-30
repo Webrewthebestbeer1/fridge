@@ -17,7 +17,7 @@ def after_request(response):
 
 class Reading(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.DateTime, default=datetime.datetime.now)
+    date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     target_temp = db.Column(db.Integer)
     compressor_state = db.Column(db.Boolean)
     sensors = db.relationship('Sensor')
