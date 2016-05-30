@@ -33,6 +33,10 @@ To create the sqlite database, open the python3 shell and execute
     db.create_all()
     exit()
 
+## Authentication
+
+The app provides no authentication on the API endpoints and should therefor be configured with a webserver with whitelisted IPs or similar.
+
 ## Performance
 
 ### Compressor switching
