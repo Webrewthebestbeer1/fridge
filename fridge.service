@@ -7,7 +7,7 @@ User=fridge
 Group=fridge
 WorkingDirectory=/home/fridge/git/fridge
 Environment="PATH=/home/fridge/env/fridge/bin"
-ExecStart=/home/fridge/env/fridge/bin/uwsgi --ini flask-recipes.ini
+ExecStart=/home/fridge/env/fridge/bin/uwsgi --ini fridge.ini
 
 [Install]
 WantedBy=multi-user.target
