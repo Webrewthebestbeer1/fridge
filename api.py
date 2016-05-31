@@ -29,7 +29,6 @@ class GetSensorReadings(Resource):
 
 class GetTargetTemp(Resource):
     def get(self):
-        agent.read_sensors()
         return {'target_temp': agent.get_target_temp()}
 
 class SetTargetTemp(Resource):

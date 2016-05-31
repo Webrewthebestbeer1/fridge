@@ -79,7 +79,9 @@ class Agent:
         for sensor in W1.get_available_sensors():
             sensor_readings.append(sensor.get_temperature())
         average_temp = sum(sensor_readings)/len(sensor_readings)
+        print(average_temp, self.get_target_temp())
         if average_temp > self.get_target_temp() + self._DELTA_OVERSHOOT_TEMP:
+            print("turning on compressor")
             self._compressor_state = True
             """
             if not GPIO.input(SSR_PIN):
@@ -88,6 +90,7 @@ class Agent:
                 GPIO.output(SSR_PIN, True)
             """
         if average_temp <= self.get_target_temp():
+            print("turning off compressor")
             self._compressor_state = False
             """
             if GPIO.input(SSR_PIN):
