@@ -4,6 +4,7 @@ import json
 
 from agent import Agent
 from app import app, db, Reading, Sensor, FridgeEncoder
+from app import app as application
 
 api = Api(app)
 parser = reqparse.RequestParser()

@@ -1,0 +1,13 @@
+[Unit]
+Description=uWSGI instance to serve fridge
+After=network.target
+
+[Service]
+User=fridge
+Group=fridge
+WorkingDirectory=/home/fridge/git/fridge
+Environment="PATH=/home/fridge/env/fridge/bin"
+ExecStart=/home/fridge/env/fridge/bin/uwsgi --ini fridge.ini
+
+[Install]
+WantedBy=multi-user.target
