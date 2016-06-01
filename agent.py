@@ -1,5 +1,8 @@
 from collections import deque
-from apscheduler.schedulers.background import BackgroundScheduler
+#from apscheduler.scheduler import Scheduler
+import atexit
+import uwsgi
+import RPi.GPIO as GPIO
 
 from app import app, db, Reading, Sensor
 
@@ -11,13 +14,16 @@ else:
     from w1thermsensor import W1ThermSensor as W1
 
 
+
 class Agent:
+    
+    
     def __init__(self, target_temp):
         self._target_temp = target_temp
-        self._READING_TICK = 5
         self._timestep = 0
         self._MIN_VALID_TEMP = 0.0
         self._MAX_VALID_TEMP = 30.0
+        self._READING_TICK = 5
         self._DELTA_OVERSHOOT_TEMP = 2.0
         self._compressor_state = True
         self._sensors = {}
@@ -27,14 +33,19 @@ class Agent:
         self._sensor_readings = deque(
             maxlen=int(60/self._READING_TICK)*len(W1.get_available_sensors())
         )
+        
+        #scheduler = Scheduler(daemon=False)
+        #scheduler.add_interval_job(self.run, seconds=self._READING_TICK)
+        #scheduler.start()
 
-        self.scheduler = BackgroundScheduler()
-        self.scheduler.add_job(
-            self.run,
-            'interval',
-            seconds=self._READING_TICK
-        )
-        self.scheduler.start()
+        self.SSR_PIN = 11
+
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(self.SSR_PIN, GPIO.OUT)
+
+        uwsgi.register_signal(9000, 'worker', self.run)
+        uwsgi.add_timer(9000, 5)
+
 
     def set_target_temp(self, temp):
         self._target_temp = temp
@@ -45,13 +56,13 @@ class Agent:
     def get_compressor_state(self):
         return self._compressor_state
 
-    def run(self):
+    def run(self, num):
         self._timestep += self._READING_TICK
         print(self._timestep)
         if self._timestep >= 60:
             self._timestep = 0
-        self.evaluate()
-        self.save_reading()
+            self.evaluate()
+            self.save_reading()
 
 
     def save_reading(self):
@@ -81,20 +92,25 @@ class Agent:
         average_temp = sum(sensor_readings)/len(sensor_readings)
         print(average_temp, self.get_target_temp())
         if average_temp > self.get_target_temp() + self._DELTA_OVERSHOOT_TEMP:
-            print("turning on compressor")
+            print("turn on compressor if needed")
             self._compressor_state = True
-            """
-            if not GPIO.input(SSR_PIN):
-                logger.info("Turning on compressor")
+            
+            if not GPIO.input(self.SSR_PIN):
+                #logger.info("Turning on compressor")
                 print("Turning on compressor")
-                GPIO.output(SSR_PIN, True)
-            """
+                GPIO.output(self.SSR_PIN, True)
+            
         if average_temp <= self.get_target_temp():
-            print("turning off compressor")
+            print("turn off compressor if needed")
             self._compressor_state = False
-            """
-            if GPIO.input(SSR_PIN):
-                GPIO.output(SSR_PIN, False)
-                logger.info("Turning off compressor")
+            
+            if GPIO.input(self.SSR_PIN):
+                GPIO.output(self.SSR_PIN, False)
+                #logger.info("Turning off compressor")
                 print("Turning off compressor")
-            """
+            
+    def cleanup(self):
+        GPIO.cleanup()
+
+    #atexit.register(lambda: cron.shutdown(wait=False))
+    atexit.register(lambda: self.cleanup())

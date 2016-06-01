@@ -1,16 +1,15 @@
 from flask_restful import Resource, Api, reqparse
 from flask import jsonify
-import json
 
 from agent import Agent
 from app import app, db, Reading, Sensor, FridgeEncoder
-from app import app as application
 
 api = Api(app)
 parser = reqparse.RequestParser()
 latest_reading = Reading.query.order_by(Reading.date.desc()).first()
 if not latest_reading: agent = Agent(19)
 else: agent = Agent(latest_reading.target_temp)
+
 
 class GetSensorReadings(Resource):
     def get(self):
@@ -49,6 +48,10 @@ class SetTargetTemp(Resource):
 api.add_resource(GetSensorReadings, '/get_sensor_readings')
 api.add_resource(GetTargetTemp, '/get_target_temp')
 api.add_resource(SetTargetTemp, '/set_target_temp')
+
+
+from app import app as application
+
 
 if __name__ == '__main__':
     app.run(
