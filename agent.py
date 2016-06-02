@@ -1,23 +1,20 @@
 from collections import deque
-#from apscheduler.scheduler import Scheduler
 import atexit
-import uwsgi
-import RPi.GPIO as GPIO
 
 from app import app, db, Reading, Sensor
 
-if (app.config['DEBUG']):
+if app.config['DEBUG']:
     from w1sim import W1Sim
     ids = ['000001efbab6', '000001efd9ac', '000001eff556']
     W1 = W1Sim(ids)
 else:
     from w1thermsensor import W1ThermSensor as W1
-
+    import uwsgi
+    import RPi.GPIO as GPIO
 
 
 class Agent:
-    
-    
+
     def __init__(self, target_temp):
         self._target_temp = target_temp
         self._timestep = 0
@@ -33,19 +30,14 @@ class Agent:
         self._sensor_readings = deque(
             maxlen=int(60/self._READING_TICK)*len(W1.get_available_sensors())
         )
-        
-        #scheduler = Scheduler(daemon=False)
-        #scheduler.add_interval_job(self.run, seconds=self._READING_TICK)
-        #scheduler.start()
+        self._SSR_PIN = 11
 
-        self.SSR_PIN = 11
-
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(self.SSR_PIN, GPIO.OUT)
-
-        uwsgi.register_signal(9000, 'worker', self.run)
-        uwsgi.add_timer(9000, 5)
-
+        if not app.config['DEBUG']:
+            GPIO.setmode(GPIO.BOARD)
+            GPIO.setup(self._SSR_PIN, GPIO.OUT)
+            uwsgi.register_signal(9000, 'worker', self.run)
+            uwsgi.add_timer(9000, 5)
+            atexit.register(self.cleanup())
 
     def set_target_temp(self, temp):
         self._target_temp = temp
@@ -58,12 +50,10 @@ class Agent:
 
     def run(self, num):
         self._timestep += self._READING_TICK
-        print(self._timestep)
         if self._timestep >= 60:
             self._timestep = 0
             self.evaluate()
             self.save_reading()
-
 
     def save_reading(self):
         reading = Reading(
@@ -82,7 +72,8 @@ class Agent:
 
     def valid_sensor_range(self, value):
         valid = value > self._MIN_VALID_TEMP and value < self._MAX_VALID_TEMP
-        #if not valid: logger.warn("Sensor value outside possible values:", value)
+        # if not valid:
+        #    logger.warn("Sensor value outside possible values:", value)
         return valid
 
     def evaluate(self):
@@ -94,23 +85,22 @@ class Agent:
         if average_temp > self.get_target_temp() + self._DELTA_OVERSHOOT_TEMP:
             print("turn on compressor if needed")
             self._compressor_state = True
-            
-            if not GPIO.input(self.SSR_PIN):
-                #logger.info("Turning on compressor")
+            if app.config['DEBUG']:
+                return
+            if not GPIO.input(self._SSR_PIN):
+                # logger.info("Turning on compressor")
                 print("Turning on compressor")
-                GPIO.output(self.SSR_PIN, True)
-            
+                GPIO.output(self._SSR_PIN, True)
+
         if average_temp <= self.get_target_temp():
             print("turn off compressor if needed")
             self._compressor_state = False
-            
-            if GPIO.input(self.SSR_PIN):
-                GPIO.output(self.SSR_PIN, False)
-                #logger.info("Turning off compressor")
+            if app.config['DEBUG']:
+                return
+            if GPIO.input(self._SSR_PIN):
+                GPIO.output(self._SSR_PIN, False)
+                # logger.info("Turning off compressor")
                 print("Turning off compressor")
-            
+
     def cleanup(self):
         GPIO.cleanup()
-
-    #atexit.register(lambda: cron.shutdown(wait=False))
-    atexit.register(lambda: self.cleanup())

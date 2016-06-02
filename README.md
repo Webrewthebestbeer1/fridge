@@ -25,13 +25,22 @@ Append
 
     wireless-power off
 
-## Setup database
+## Deploy
+
+### Setup database
 
 To create the sqlite database, open the python3 shell and execute
 
     from app import db
     db.create_all()
     exit()
+
+### Start the app with systemd
+
+    cp fridge.servce /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl default fridge
+    systemctl start fridge
 
 ## Authentication
 
