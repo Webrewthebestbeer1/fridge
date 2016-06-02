@@ -32,12 +32,12 @@ class Agent:
         )
         self._SSR_PIN = 11
 
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(self._SSR_PIN, GPIO.OUT)
-
         if not app.config['DEBUG']:
+            GPIO.setmode(GPIO.BOARD)
+            GPIO.setup(self._SSR_PIN, GPIO.OUT)
             uwsgi.register_signal(9000, 'worker', self.run)
             uwsgi.add_timer(9000, 5)
+            atexit.register(self.cleanup())
 
     def set_target_temp(self, temp):
         self._target_temp = temp
@@ -104,5 +104,3 @@ class Agent:
 
     def cleanup(self):
         GPIO.cleanup()
-
-    atexit.register(lambda: self.cleanup())
