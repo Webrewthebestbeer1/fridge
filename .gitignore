@@ -3,3 +3,4 @@ python.conf
 config.py
 app.db
 __pycache__
+*.log

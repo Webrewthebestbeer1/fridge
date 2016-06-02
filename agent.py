@@ -1,5 +1,7 @@
 from collections import deque
 import atexit
+import logging
+import logging.config
 
 from app import app, db, Reading, Sensor
 
@@ -22,6 +24,7 @@ class Agent:
         self._MAX_VALID_TEMP = 30.0
         self._READING_TICK = 5
         self._DELTA_OVERSHOOT_TEMP = 2.0
+        self._SSR_PIN = 11
         self._compressor_state = True
         self._sensors = {}
         self._sensors['000001efbab6'] = 'top'
@@ -30,15 +33,22 @@ class Agent:
         self._sensor_readings = deque(
             maxlen=int(60/self._READING_TICK)*len(W1.get_available_sensors())
         )
-        self._SSR_PIN = 11
+
+        logging.config.dictConfig(app.config['LOG_CONFIG'])
+        self.logger = logging.getLogger('agent')
 
         if not app.config['DEBUG']:
             GPIO.setmode(GPIO.BOARD)
             GPIO.setup(self._SSR_PIN, GPIO.OUT)
             uwsgi.register_signal(9000, 'worker', self.run)
             uwsgi.add_timer(9000, 5)
-            atexit.register(self.cleanup())
+            atexit.register(lambda: self.cleanup())
+            self.logger.setLevel(logging.WARN)
+        else:
+            self.logger.setLevel(logging.DEBUG)
 
+        self.logger.info("Agent started")
+    
     def set_target_temp(self, temp):
         self._target_temp = temp
 
@@ -50,6 +60,7 @@ class Agent:
 
     def run(self, num):
         self._timestep += self._READING_TICK
+        self.logger.debug("Current timestep: " + str(self._timestep))
         if self._timestep >= 60:
             self._timestep = 0
             self.evaluate()
@@ -72,8 +83,8 @@ class Agent:
 
     def valid_sensor_range(self, value):
         valid = value > self._MIN_VALID_TEMP and value < self._MAX_VALID_TEMP
-        # if not valid:
-        #    logger.warn("Sensor value outside possible values:", value)
+        if not valid:
+            self.logger.error("Sensor value " + str(value) + "is outside possible values")
         return valid
 
     def evaluate(self):
@@ -81,26 +92,31 @@ class Agent:
         for sensor in W1.get_available_sensors():
             sensor_readings.append(sensor.get_temperature())
         average_temp = sum(sensor_readings)/len(sensor_readings)
-        print(average_temp, self.get_target_temp())
+        self.logger.debug("Average temp: " + str(average_temp) + ". Target temp:" + str(self.get_target_temp()))
         if average_temp > self.get_target_temp() + self._DELTA_OVERSHOOT_TEMP:
-            print("turn on compressor if needed")
+            self.logger.debug("Turn on compressor if needed")
             self._compressor_state = True
             if app.config['DEBUG']:
                 return
             if not GPIO.input(self._SSR_PIN):
-                # logger.info("Turning on compressor")
-                print("Turning on compressor")
+                self.logger.info("Turning on compressor")
                 GPIO.output(self._SSR_PIN, True)
+                if not GPIO.input(self._SSR_PIN):
+                    self.logger.error("Unable to turn on compressor!")
+                    self._compressor_state = False
 
         if average_temp <= self.get_target_temp():
-            print("turn off compressor if needed")
+            self.logging.debug("Turn off compressor if needed")
             self._compressor_state = False
             if app.config['DEBUG']:
                 return
             if GPIO.input(self._SSR_PIN):
                 GPIO.output(self._SSR_PIN, False)
-                # logger.info("Turning off compressor")
-                print("Turning off compressor")
+                self.logger.info("Turning off compressor")
+                if GPIO.input(self._SSR_PIN):
+                    self.logger.error("Unable to turn off compressor!")
+                    self._compressor_state = True
 
     def cleanup(self):
+        self.logger.warn("Program shut down. Cleaning up")
         GPIO.cleanup()

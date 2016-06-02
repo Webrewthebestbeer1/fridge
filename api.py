@@ -37,7 +37,7 @@ class GetSensorReadings(Resource):
                 As the graph should not load more than around 50 entries
                 we select only the n-th elements from the table
                 """
-                entries = (to_date - from_date).seconds / 5
+                entries = (to_date - from_date).seconds / 60
                 n = int(entries / 50)
                 results = db.engine.execute(
                     "SELECT * FROM reading WHERE \
