@@ -1,15 +1,15 @@
 from collections import deque
 import atexit
-import uwsgi
 
 from app import app, db, Reading, Sensor
 
-if (app.config['DEBUG']):
+if app.config['DEBUG']:
     from w1sim import W1Sim
     ids = ['000001efbab6', '000001efd9ac', '000001eff556']
     W1 = W1Sim(ids)
 else:
     from w1thermsensor import W1ThermSensor as W1
+    import uwsgi
     import RPi.GPIO as GPIO
 
 
@@ -35,8 +35,9 @@ class Agent:
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self._SSR_PIN, GPIO.OUT)
 
-        uwsgi.register_signal(9000, 'worker', self.run)
-        uwsgi.add_timer(9000, 5)
+        if not app.config['DEBUG']:
+            uwsgi.register_signal(9000, 'worker', self.run)
+            uwsgi.add_timer(9000, 5)
 
     def set_target_temp(self, temp):
         self._target_temp = temp

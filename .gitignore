@@ -1,5 +1,5 @@
 python.conf
 *.swp
-
+config.py
 app.db
 __pycache__
