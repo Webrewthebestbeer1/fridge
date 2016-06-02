@@ -21,7 +21,7 @@ class Agent:
     def __init__(self, target_temp):
         self._target_temp = target_temp
         self._timestep = 0
-        self._MIN_VALID_TEMP = 0.0
+        self._MIN_VALID_TEMP = -5.0
         self._MAX_VALID_TEMP = 30.0
         self._READING_TICK = 5
         self._DELTA_OVERSHOOT_TEMP = 2.0
