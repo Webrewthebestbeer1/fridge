@@ -1,3 +1,0 @@
-w1thermsensor
-RPi.GPIO
-loggly-python-handler
