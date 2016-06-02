@@ -43,9 +43,11 @@ class Agent:
             uwsgi.register_signal(9000, 'worker', self.run)
             uwsgi.add_timer(9000, 5)
             atexit.register(lambda: self.cleanup())
-            self.logger.setLevel(logging.WARN)
-        else:
+
+        if app.config['LOG_DEBUG']:
             self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.WARN)
 
         self.logger.info("Agent started")
     
@@ -106,7 +108,7 @@ class Agent:
                     self._compressor_state = False
 
         if average_temp <= self.get_target_temp():
-            self.logging.debug("Turn off compressor if needed")
+            self.logger.debug("Turn off compressor if needed")
             self._compressor_state = False
             if app.config['DEBUG']:
                 return
