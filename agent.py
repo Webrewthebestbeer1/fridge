@@ -94,7 +94,7 @@ class Agent:
         for sensor in W1.get_available_sensors():
             sensor_readings.append(sensor.get_temperature())
         average_temp = sum(sensor_readings)/len(sensor_readings)
-        self.logger.debug("Average temp: " + str(average_temp) + ". Target temp:" + str(self.get_target_temp()))
+        self.logger.debug("Average temp: " + str(average_temp) + ". Target temp: " + str(self.get_target_temp()))
         if average_temp > self.get_target_temp() + self._DELTA_OVERSHOOT_TEMP:
             self.logger.debug("Turn on compressor if needed")
             self._compressor_state = True
