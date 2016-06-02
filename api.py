@@ -3,12 +3,15 @@ from flask import jsonify
 
 from agent import Agent
 from app import app, db, Reading, Sensor, FridgeEncoder
+from app import app as application
 
 api = Api(app)
 parser = reqparse.RequestParser()
 latest_reading = Reading.query.order_by(Reading.date.desc()).first()
-if not latest_reading: agent = Agent(19)
-else: agent = Agent(latest_reading.target_temp)
+if not latest_reading:
+    agent = Agent(19)
+else:
+    agent = Agent(latest_reading.target_temp)
 
 
 class GetSensorReadings(Resource):
@@ -16,11 +19,15 @@ class GetSensorReadings(Resource):
         try:
             parser = reqparse.RequestParser()
             parser.add_argument('limit', type=int, help='Limit')
+            parser.add_argument('from', type=str, help='From')
+            parser.add_argument('to', type=str, help='To')
             args = parser.parse_args()
             limit = args['limit']
             if not limit:
-                limit=50
-            readings = Reading.query.order_by(Reading.date.desc()).limit(limit).all()
+                limit = 50
+            readings = Reading.query.order_by(
+                Reading.date.desc()
+            ).limit(limit).all()
             readings.reverse()
             return jsonify([reading.serialize() for reading in readings])
         except Exception as e:
@@ -31,14 +38,20 @@ class GetTargetTemp(Resource):
     def get(self):
         return {'target_temp': agent.get_target_temp()}
 
+
 class SetTargetTemp(Resource):
     def post(self):
         try:
             parser = reqparse.RequestParser()
-            parser.add_argument('target_temp', type=int, help='Target temperature')
+            parser.add_argument(
+                'target_temp',
+                type=int,
+                help='Target temperature'
+            )
             args = parser.parse_args()
             _target_temp = args['target_temp']
-            if not _target_temp: raise Exception('no valid arguments')
+            if not _target_temp:
+                raise Exception('no valid arguments')
             agent.set_target_temp(_target_temp)
             return {'target_temp': _target_temp}
         except Exception as e:
@@ -50,11 +63,8 @@ api.add_resource(GetTargetTemp, '/get_target_temp')
 api.add_resource(SetTargetTemp, '/set_target_temp')
 
 
-from app import app as application
-
-
 if __name__ == '__main__':
     app.run(
         debug=app.config['DEBUG'],
-        use_reloader=False # initiates APScheduler twice if True
+        use_reloader=False  # initiates APScheduler twice if True
     )
