@@ -1,15 +1,15 @@
 aniso8601==1.1.0
 click==6.6
-Flask==0.11
+# Flask==0.11 probably a security risk
 Flask-RESTful==0.3.5
 Flask-SQLAlchemy==2.1
 itsdangerous==0.24
-Jinja2==2.8
+# Jinja2==2.8 probably a security risk
 MarkupSafe==0.23
 python-dateutil==2.5.3
 pytz==2016.4
 six==1.10.0
-SQLAlchemy==1.0.13
+# SQLAlchemy==1.0.13 probably a security risk
 tzlocal==1.2.2
 uWSGI==2.0.13.1
 w1thermsensor==0.3.1
